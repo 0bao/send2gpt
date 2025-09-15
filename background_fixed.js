@@ -216,7 +216,7 @@ function showNotification(message, type = 'info') {
   // 使用chrome.notifications API显示通知
   chrome.notifications.create({
     type: 'basic',
-    iconUrl: 'icon.png',
+    iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
     title: '划词翻译助手',
     message: message
   }, function(notificationId) {
