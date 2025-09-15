@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>划词翻译助手测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #e8f4fd;
+            border-radius: 8px;
+        }
+        .instructions {
+            background-color: #fff8e1;
+            padding: 15px;
+            border-left: 4px solid #ffd54f;
+            margin: 20px 0;
+        }
+        .highlight {
+            background-color: #fff3e0;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .test-text {
+            font-size: 16px;
+            line-height: 1.6;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 15px 0;
+        }
+        .step-number {
+            background-color: #2196F3;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .note {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #2196F3;
+        }
+        .fixes {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>划词翻译助手测试页面</h1>
+        
+        <div class="instructions">
+            <h2>测试说明</h2>
+            <p>请按照以下步骤测试划词翻译助手插件功能：</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">1</div>
+            <div>
+                <h3>安装插件</h3>
+                <p>确保划词翻译助手插件已正确安装并启用</p>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">2</div>
+            <div>
+                <h3>打开GPT页面</h3>
+                <p>打开ChatGPT或其他GPT页面，并点击插件图标将其设置为目标页面</p>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">3</div>
+            <div>
+                <h3>选择文本</h3>
+                <p>在此页面上选择下面测试文本中的任意部分</p>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">4</div>
+            <div>
+                <h3>点击翻译按钮</h3>
+                <p>选择文本后会出现翻译按钮，点击它</p>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">5</div>
+            <div>
+                <h3>验证结果</h3>
+                <p>检查GPT页面是否收到了翻译请求</p>
+            </div>
+        </div>
+        
+        <div class="fixes">
+            <h3>修复功能说明</h3>
+            <p>此版本已修复以下问题：</p>
+            <ul>
+                <li><strong>增强错误处理机制</strong>：改进了消息发送错误处理，连接失败时会清除GPT页面设置并通知用户</li>
+                <li><strong>改进用户反馈</strong>：添加了页面内通知功能，错误信息会直接显示在页面上</li>
+                <li><strong>更新权限配置</strong>：确保包含所有必要的权限</li>
+                <li><strong>添加调试工具</strong>：包含增强版和简化版调试脚本</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h2>测试文本</h2>
+            <div class="test-text" id="testContent">
+                <p>人工智能（Artificial Intelligence，AI）是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。该领域的研究包括机器人、语言识别、图像识别、自然语言处理和专家系统等。</p>
+                
+                <p>Machine learning is a method of data analysis that automates analytical model building. It is a branch of artificial intelligence based on the idea that systems can learn from data, identify patterns and make decisions with minimal human intervention.</p>
+                
+                <p>深度学习是机器学习的一个子集，它模仿人脑的工作方式来处理数据和创建模式，用于决策制定。深度学习算法使用神经网络的多层来学习数据的复杂结构。</p>
+                
+                <p>Natural language processing (NLP) is a branch of artificial intelligence that helps computers understand, interpret and manipulate human language. It involves developing algorithms that can analyze, understand and generate human language in a valuable way.</p>
+            </div>
+        </div>
+        
+        <div class="note">
+            <h3>注意事项</h3>
+            <ul>
+                <li>确保插件已正确安装并启用</li>
+                <li>确保GPT页面已正确设置为目标页面</li>
+                <li>如果遇到问题，请检查浏览器控制台是否有错误信息</li>
+                <li>某些网站可能有安全限制，影响插件功能</li>
+                <li>修复版使用background_fixed.js和content_fixed.js文件</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

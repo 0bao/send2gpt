@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "划词翻译助手",
+  "version": "1.0",
+  "description": "一个可以将选中文本发送到GPT页面进行翻译的浏览器扩展",
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "tabs",
+    "notifications",
+    "activeTab"
+  ],
+  "background": {
+    "service_worker": "background_fixed.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_fixed.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "debug.html",
+        "test.html",
+        "debug_test.js",
+        "simple_debug.js",
+        "advanced_debug.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
