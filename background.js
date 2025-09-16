@@ -1,14 +1,17 @@
 // =================================================================
 // 常量和状态管理
 // =================================================================
-const PREFIX_TEXT = "将下列内容翻译成中文：";
+let prefixText = "将下列内容翻译成中文："; // 默认值
 let gptTabId = null;
 let lastSelectedText = '';
 
-// 从本地存储中恢复 GPT 页面 ID
-chrome.storage.local.get(['gptTabId'], (result) => {
+// 从本地存储中恢复 GPT 页面 ID 和 prefixText
+chrome.storage.local.get(['gptTabId', 'prefixText'], (result) => {
   if (result.gptTabId) {
     gptTabId = result.gptTabId;
+  }
+  if (result.prefixText) {
+    prefixText = result.prefixText;
   }
 });
 
@@ -16,9 +19,6 @@ chrome.storage.local.get(['gptTabId'], (result) => {
 // 消息处理和通知
 // =================================================================
 
-/**
- * 显示页面内浮动通知
- */
 function showNotification(message, type = 'info') {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
@@ -30,17 +30,11 @@ function showNotification(message, type = 'info') {
   });
 }
 
-/**
- * 清除 GPT 页面设置
- */
 function clearGPTPage() {
   gptTabId = null;
   chrome.storage.local.remove('gptTabId');
 }
 
-/**
- * 检查 GPT 页面是否存在并更新状态
- */
 function checkGPTPageAndRun(callback) {
   if (!gptTabId) {
     showNotification('未设置GPT页面，请先打开GPT页面并设置为目标页面', 'error');
@@ -61,9 +55,6 @@ function checkGPTPageAndRun(callback) {
 // 主要功能函数
 // =================================================================
 
-/**
- * 发送文本到 GPT 页面进行处理
- */
 function sendToGPT(text) {
   checkGPTPageAndRun(() => {
     chrome.tabs.update(gptTabId, { active: true }, () => {
@@ -75,7 +66,7 @@ function sendToGPT(text) {
 
       chrome.tabs.sendMessage(
         gptTabId,
-        { action: 'sendTextToGPT', text: PREFIX_TEXT + text },
+        { action: 'sendTextToGPT', text: prefixText + text },
         (response) => {
           if (chrome.runtime.lastError) {
             clearGPTPage();
@@ -94,9 +85,6 @@ function sendToGPT(text) {
   });
 }
 
-/**
- * 设置当前标签页为 GPT 目标页面
- */
 function setAsGPTPage(tabId) {
   gptTabId = tabId;
   chrome.storage.local.set({ gptTabId });
@@ -119,6 +107,11 @@ chrome.runtime.onMessage.addListener((request, sender) => {
       lastSelectedText = request.text;
       console.log("保存的选中文本:", lastSelectedText);
       break;
+    case 'updatePrefixText': // 🔥 新增：更新前缀
+      prefixText = request.value || "将下列内容翻译成中文：";
+      chrome.storage.local.set({ prefixText });
+      showNotification('前缀已更新为：' + prefixText, 'info');
+      break;
     default:
       showNotification('未知动作', 'error');
       break;
@@ -134,7 +127,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId === 'setAsGPTPage') {
+  if (info.menuItemId === 'setAsGPTPage') {
     setAsGPTPage(tab.id);
     showNotification('已将当前页面设为GPT目标页面', 'info');
   }

@@ -114,7 +114,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   } else if (request.action === "showNotification") {
     showNotification(request.payload.message, request.payload.type);
-    sendResponse({ success: true });
     return true;
   }
   return true;

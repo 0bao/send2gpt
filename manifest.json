@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "划词翻译助手",
+  "name": "发送到GPT",
   "version": "1.0",
-  "description": "一个可以将选中文本发送到GPT页面进行翻译的浏览器扩展",
+  "description": "划线发送到GPT：翻译、格式化",
   "permissions": [
     "contextMenus",
     "storage",
@@ -21,15 +21,5 @@
   ],
   "action": {
     "default_popup": "popup.html"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "debug.html",
-        "debug_test.js",
-        "simple_debug.js"
-      ],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  }
 }
