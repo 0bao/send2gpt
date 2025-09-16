@@ -23,11 +23,13 @@ function createTranslateButton() {
     font-size: 12px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     display: none;
+    user-select: none; /* 禁止选中文字 */
   `;
 
   button.addEventListener('click', handleSendToGPTButtonClick);
   document.body.appendChild(button);
 }
+
 
 
 function showTranslateButton(x, y) {

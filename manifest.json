@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "发送到GPT",
   "version": "1.0",
-  "description": "划线发送到GPT：翻译、格式化",
+  "description": "划线后添加前缀发送到GPT：翻译、格式化",
   "permissions": [
     "contextMenus",
     "storage",
