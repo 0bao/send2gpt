@@ -104,18 +104,6 @@ function showNotification(message, type = 'info') {
   }, 3000);
 }
 
-
-// 监听 background 的消息
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === "showNotification") {
-        showNotification(msg.payload);
-        sendResponse({ status: "ok" });
-    }
-});
-
-
-
-
 // 监听鼠标事件
 document.addEventListener('mouseup', function(event) {
   selectedText = window.getSelection().toString().trim();
@@ -131,22 +119,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fillAndSend' || request.action === 'sendTextToGPT') {
     fillAndSendToChat(request.text, sendResponse);
     return true;
-  } else if (request.action === 'checkIfGPTPage') {
-    const isGPTPage = !!document.querySelector('textarea[data-id*="root"]');
-    sendResponse({ isGPTPage });
-    return true;
-  } else if (request.action === 'contentScriptLoaded') {
-    sendResponse({ success: true });
-    return true;
-  } else if (request.action === 'contentScriptUnloading') {
-    sendResponse({ success: true });
-    return true;
   } else if (request.action === "showNotification") {
     showNotification(request.payload.message, request.payload.type);
     sendResponse({ success: true });
     return true;
   }
-
   return true;
 });
 
@@ -234,14 +211,3 @@ function fillAndSendToChat(text, sendResponse) {
 
 createTranslateButton();
 
-window.addEventListener('load', function() {
-  try {
-    chrome.runtime.sendMessage({ action: 'contentScriptLoaded' });
-  } catch {}
-});
-
-window.addEventListener('beforeunload', function() {
-  try {
-    chrome.runtime.sendMessage({ action: 'contentScriptUnloading' });
-  } catch {}
-});

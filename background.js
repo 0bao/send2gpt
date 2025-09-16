@@ -15,60 +15,31 @@ chrome.storage.local.get(['gptTabId'], (result) => {
 // 消息处理和通知
 // =================================================================
 
-
-
-// 这个方法：查找当前活动 tab，然后让 content.js 去执行 showNotification
-function showNotification_(message, type = 'info') {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-            chrome.tabs.sendMessage(
-                tabs[0].id,
-                { action: "showNotification", payload: { message, type }},
-                (response) => {
-                    console.log("content.js 响应:", response);
-                }
-            );
-        }
-    });
-}
-
-
 /**
- * 显示浏览器通知
+ * 显示页面内浮动通知
  * @param {string} message - 通知内容
  * @param {('info'|'error')} [type='info'] - 通知类型
  */
 function showNotification(message, type = 'info') {
-
-  showNotification_(message, type);
-  // try {
-  //   const iconUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-  //   chrome.notifications.create({
-  //     type: 'basic',
-  //     iconUrl: iconUrl,
-  //     title: '划词翻译助手',
-  //     message: message,
-  //     priority: type === 'error' ? 2 : 0,
-  //   }, (id) => {
-  //     // 3秒后自动清除通知
-  //     if (id && !chrome.runtime.lastError) {
-  //       setTimeout(() => chrome.notifications.clear(id), 3000);
-  //     }
-  //   });
-  // } catch (e) {
-  //   console.error(`[${type.toUpperCase()}] Notification error: ${e.message}`);
-  //   console.log(`[${type.toUpperCase()}] ${message}`);
-  // }
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(
+        tabs[0].id,
+        { action: "showNotification", payload: { message, type } },
+        (response) => {
+          console.log("content.js 响应:", response);
+        }
+      );
+    }
+  });
 }
 
 /**
- * 封装的错误处理函数，用于发送错误响应和显示通知
- * @param {string} message - 错误信息
- * @param {function} sendResponse - sendResponse 回调函数
+ * 错误处理并提示
  */
 function handleResponseError(message, sendResponse) {
   showNotification(message, 'error');
-  sendResponse?.({ success: false, message: message });
+  sendResponse?.({ success: false, message });
 }
 
 /**
@@ -81,8 +52,6 @@ function clearGPTPage() {
 
 /**
  * 检查 GPT 页面是否存在并更新状态
- * @param {function} callback - 回调函数
- * @param {function} [sendResponse] - sendResponse 回调函数
  */
 function checkGPTPageAndRun(callback, sendResponse) {
   if (!gptTabId) {
@@ -106,8 +75,6 @@ function checkGPTPageAndRun(callback, sendResponse) {
 
 /**
  * 发送文本到 GPT 页面进行处理
- * @param {string} text - 需要发送的文本
- * @param {function} [sendResponse] - sendResponse 回调函数
  */
 function sendTextToGPT(text, sendResponse) {
   checkGPTPageAndRun(() => {
@@ -117,7 +84,7 @@ function sendTextToGPT(text, sendResponse) {
         handleResponseError('GPT页面不存在或已断开连接，请重新设置目标页面', sendResponse);
         return;
       }
-      
+
       chrome.tabs.sendMessage(
         gptTabId,
         { action: 'sendTextToGPT', text: PREFIX_TEXT + text },
@@ -142,7 +109,6 @@ function sendTextToGPT(text, sendResponse) {
 
 /**
  * 设置当前标签页为 GPT 目标页面
- * @param {number} tabId - 标签页 ID
  */
 function setAsGPTPage(tabId) {
   gptTabId = tabId;
@@ -153,31 +119,15 @@ function setAsGPTPage(tabId) {
 // 事件监听器
 // =================================================================
 
-// 监听来自 popup 或 content script 的消息
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
     case 'translateText':
-      console.log('333');
       sendTextToGPT(request.text, sendResponse);
       break;
     case 'setAsGPTPage':
       setAsGPTPage(sender.tab.id);
       showNotification('已设置为GPT页面', request.type);
       sendResponse({ message: '已设置为GPT页面' });
-      break;
-    case 'checkIfGPTPage':
-      sendResponse({ isGPTPage: sender.tab.id === gptTabId });
-      break;
-    case 'getCurrentGPTTabId':
-      sendResponse({ gptTabId: gptTabId });
-      break;
-    case 'clearGPTPage':
-      clearGPTPage();
-      sendResponse({ message: 'GPT页面设置已清除' });
-      break;
-    case 'showNotification':
-      showNotification(request.message, request.type);
-      sendResponse({ success: true });
       break;
     default:
       sendResponse({ success: false, message: '未知动作' });
@@ -186,7 +136,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-// 监听扩展程序安装事件，创建右键菜单
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'translateContextMenu',
@@ -200,7 +149,6 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// 监听右键菜单点击事件
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'translateContextMenu' && info.selectionText) {
     sendTextToGPT(info.selectionText, null);
@@ -210,7 +158,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
-// 监听标签页关闭事件，如果关闭的是 GPT 页面，则清除设置
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (tabId === gptTabId) {
     clearGPTPage();
