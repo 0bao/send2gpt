@@ -24,29 +24,38 @@ function createTranslateButton() {
   
   // 添加点击事件监听器
   button.addEventListener('click', function() {
-    if (selectedText) {
-      // 发送翻译请求到background script
-      chrome.runtime.sendMessage({
-        action: 'translateText',
-        text: selectedText
-      }, function(response) {
-        if (chrome.runtime.lastError) {
-          console.error('发送翻译请求时出错:', chrome.runtime.lastError.message);
-          showNotification('发送翻译请求时出错: ' + chrome.runtime.lastError.message, 'error');
-        } else if (response && !response.success) {
-          console.error('翻译请求失败:', response.message);
-          // 检查是否是因为未设置GPT页面导致的错误
-          if (response.message && response.message.includes('未设置GPT页面')) {
-            showNotification('请先打开GPT页面并设置为目标页面', 'error');
-          } else {
-            showNotification(response.message, 'error');
-          }
-        } else {
-          console.log('翻译请求已发送');
-          showNotification('文本已发送到GPT页面', 'info');
-        }
-      });
+    console.log('翻译按钮被点击，selectedText:', selectedText);
+  
+    检查文本是否为空
+    if (selectedText.trim() === '') {
+      console.warn('选中的文本为空');
+      showNotification('选中的文本为空', 'error');
+      return;
     }
+    
+    // 发送翻译请求到background script
+    console.log('准备发送翻译请求:', selectedText);
+    chrome.runtime.sendMessage({
+      action: 'translateText',
+      text: selectedText
+    }, function(response) {
+      console.log('收到翻译请求响应:', response);
+      if (chrome.runtime.lastError) {
+        console.error('发送翻译请求时出错:', chrome.runtime.lastError.message);
+        showNotification('发送翻译请求时出错: ' + chrome.runtime.lastError.message, 'error');
+      } else if (response && !response.success) {
+        console.error('翻译请求失败:', response.message);
+        // 检查是否是因为未设置GPT页面导致的错误
+        if (response.message && response.message.includes('未设置GPT页面')) {
+          showNotification('请先打开GPT页面并设置为目标页面', 'error');
+        } else {
+          showNotification(response.message, 'error');
+        }
+      } else {
+        console.log('翻译请求已发送');
+        showNotification('文本已发送到GPT页面', 'info');
+      }
+    });
   });
   
   // 将按钮添加到页面

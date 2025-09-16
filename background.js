@@ -1,5 +1,3 @@
-// 增强版background.js - 改进错误处理和连接检查机制
-
 // 存储GPT页面的tabId
 let gptTabId = null;
 
@@ -23,6 +21,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // 设置当前标签页为GPT页面
     setAsGPTPage(sender.tab.id);
     sendResponse({ message: '已设置为GPT页面' });
+    showNotification('已设置为GPT页面', request.type);
   } else if (request.action === 'checkIfGPTPage') {
     // 检查当前标签页是否为GPT页面
     const isGPTPage = sender.tab.id === gptTabId;
@@ -134,8 +133,6 @@ function setAsGPTPage(tabId) {
     }
   });
   
-  // 更新插件图标状态
-  // 移除了图标设置相关代码，避免因缺少图标文件导致的错误
 }
 
 // 可配置的前缀文本
@@ -258,7 +255,7 @@ chrome.runtime.onInstalled.addListener(function() {
   chrome.contextMenus.create({
     id: 'setAsGPTPage',
     title: '设为GPT目标页面',
-    contexts: ['all']
+    contexts: ['page']
   }, function() {
     if (chrome.runtime.lastError) {
       console.error('创建GPT页面设置菜单时出错:', chrome.runtime.lastError.message);
@@ -302,13 +299,6 @@ chrome.runtime.onInstalled.addListener(function() {
       // 设置当前页面为GPT页面
       setAsGPTPage(tab.id);
       
-      // 显示通知确认设置成功
-      chrome.notifications.create({
-        type: 'basic',
-        title: '划词翻译助手',
-        message: '已将此页面设置为GPT目标页面',
-        iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-      });
     }
   });
 
@@ -327,51 +317,5 @@ chrome.tabs.onRemoved.addListener(function(tabId) {
   }
 });
 
-// 当插件图标被点击时
-chrome.action.onClicked.addListener(function(tab) {
-  // 检查当前页面是否为GPT页面
-  chrome.tabs.sendMessage(tab.id, {action: 'checkIfGPTPage'}, function(response) {
-    if (chrome.runtime.lastError) {
-      // 如果无法发送消息，说明当前页面不是GPT页面，设置为GPT页面
-      console.log('无法发送消息到当前页面，将其设置为GPT页面');
-      setAsGPTPage(tab.id);
-      
-      // 显示通知
-      chrome.notifications.create({
-        type: 'basic',
-        title: '划词翻译助手',
-        message: '已将此页面设置为GPT目标页面',
-        iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-      });
-    } else if (response && response.isGPTPage) {
-      // 如果是GPT页面，则取消设置
-      gptTabId = null;
-      chrome.storage.local.remove('gptTabId', function() {
-        if (chrome.runtime.lastError) {
-          console.error('清除GPT页面ID时出错:', chrome.runtime.lastError.message);
-        }
-        
-        // 显示通知
-        chrome.notifications.create({
-          type: 'basic',
-          title: '划词翻译助手',
-          message: '已取消GPT目标页面设置',
-          iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-        });
-      });
-    } else {
-      // 如果不是GPT页面，则设置为GPT页面
-      setAsGPTPage(tab.id);
-      
-      // 显示通知
-      chrome.notifications.create({
-        type: 'basic',
-        title: '划词翻译助手',
-        message: '已将此页面设置为GPT目标页面',
-        iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-      });
-    }
-  });
-});
 
 console.log('划词翻译助手background script已加载');
