@@ -3,35 +3,15 @@
 let selectedText = '';
 
 // 点击翻译按钮的处理函数
-function handleTranslateButtonClick() {
-  if (!selectedText || !selectedText.trim()) {
-    showNotification('选中的文本为空', 'error');
-    return;
-  }
-
-  chrome.runtime.sendMessage(
-    { action: 'translateText', text: selectedText },
-    (response) => {
-      if (chrome.runtime.lastError) {
-        showNotification('发送翻译请求时出错: ' + chrome.runtime.lastError.message, 'error');
-      } else if (response && !response.success) {
-        if (response.message && response.message.includes('未设置GPT页面')) {
-          showNotification('请先打开GPT页面并设置为目标页面', 'error');
-        } else {
-          showNotification(response.message, 'error');
-        }
-      } else {
-        showNotification('文本已发送到GPT页面', 'info');
-      }
-    }
-  );
+function handleSendToGPTButtonClick() {
+  chrome.runtime.sendMessage( { action: 'sendToGPT', text: selectedText } );
 }
 
 // 创建翻译按钮
 function createTranslateButton() {
   const button = document.createElement('div');
-  button.id = 'translate-button';
-  button.innerHTML = '🌐翻译';
+  button.id = 'sent2gpt-button';
+  button.innerHTML = '发送到GPT';
   button.style.cssText = `
     position: fixed;
     z-index: 10000;
@@ -45,13 +25,13 @@ function createTranslateButton() {
     display: none;
   `;
 
-  button.addEventListener('click', handleTranslateButtonClick);
+  button.addEventListener('click', handleSendToGPTButtonClick);
   document.body.appendChild(button);
 }
 
 
 function showTranslateButton(x, y) {
-  const button = document.getElementById('translate-button');
+  const button = document.getElementById('sent2gpt-button');
   if (button) {
     button.style.left = (x + 10) + 'px';
     button.style.top = (y + 10) + 'px';
@@ -60,7 +40,7 @@ function showTranslateButton(x, y) {
 }
 
 function hideTranslateButton() {
-  const button = document.getElementById('translate-button');
+  const button = document.getElementById('sent2gpt-button');
   if (button) button.style.display = 'none';
 }
 

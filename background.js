@@ -77,7 +77,8 @@ function checkGPTPageAndRun(callback, sendResponse) {
 /**
  * 发送文本到 GPT 页面进行处理
  */
-function sendTextToGPT(text, sendResponse) {
+function sendToGPT(text, sendResponse) {
+  
   checkGPTPageAndRun(() => {
     chrome.tabs.update(gptTabId, { active: true }, () => {
       if (chrome.runtime.lastError) {
@@ -122,8 +123,8 @@ function setAsGPTPage(tabId) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
-    case 'translateText':
-      sendTextToGPT(request.text, sendResponse);
+    case 'sendToGPT':
+      sendToGPT(request.text, sendResponse);
       break;
     case 'setAsGPTPage':
       setAsGPTPage(sender.tab.id);
@@ -155,7 +156,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'translateContextMenu' && info.selectionText) {
-    sendTextToGPT(info.selectionText, null);
+    sendToGPT(info.selectionText, null);
   } else if (info.menuItemId === 'setAsGPTPage') {
     setAsGPTPage(tab.id);
     showNotification('已将当前页面设为GPT目标页面', 'info');
