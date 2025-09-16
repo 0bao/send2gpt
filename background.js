@@ -137,6 +137,7 @@ function setAsGPTPage(tabId) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
     case 'translateText':
+      console.log('333');
       sendTextToGPT(request.text, sendResponse);
       break;
     case 'setAsGPTPage':
@@ -159,7 +160,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
     default:
-      console.warn('未知消息动作：', request.action);
       sendResponse({ success: false, message: '未知动作' });
       break;
   }

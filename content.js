@@ -21,6 +21,7 @@ function createTranslateButton() {
   `;
   
   button.addEventListener('click', function() {
+
     if (!selectedText.trim()) {
       showNotification('选中的文本为空', 'error');
       return;
@@ -106,15 +107,11 @@ function showNotification(message, type = 'info') {
 // 监听鼠标事件
 document.addEventListener('mouseup', function(event) {
   selectedText = window.getSelection().toString().trim();
-  if (selectedText) showTranslateButton(event.clientX, event.clientY);
-  else hideTranslateButton();
-});
-
-document.addEventListener('mousedown', function(event) {
-  const button = document.getElementById('translate-button');
-  if (button && event.target !== button && !button.contains(event.target)) {
-    hideTranslateButton();
+  if (selectedText) {
+    showTranslateButton(event.clientX, event.clientY);
+    console.log('选中的文本:', selectedText);
   }
+  else hideTranslateButton();
 });
 
 // 监听来自background script的消息
