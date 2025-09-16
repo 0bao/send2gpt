@@ -15,30 +15,50 @@ chrome.storage.local.get(['gptTabId'], (result) => {
 // 消息处理和通知
 // =================================================================
 
+
+
+// 这个方法：查找当前活动 tab，然后让 content.js 去执行 showNotification
+function showNotification_(message, type = 'info') {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+            chrome.tabs.sendMessage(
+                tabs[0].id,
+                { action: "showNotification", payload: { message, type }},
+                (response) => {
+                    console.log("content.js 响应:", response);
+                }
+            );
+        }
+    });
+}
+
+
 /**
  * 显示浏览器通知
  * @param {string} message - 通知内容
  * @param {('info'|'error')} [type='info'] - 通知类型
  */
 function showNotification(message, type = 'info') {
-  try {
-    const iconUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: iconUrl,
-      title: '划词翻译助手',
-      message: message,
-      priority: type === 'error' ? 2 : 0,
-    }, (id) => {
-      // 3秒后自动清除通知
-      if (id && !chrome.runtime.lastError) {
-        setTimeout(() => chrome.notifications.clear(id), 3000);
-      }
-    });
-  } catch (e) {
-    console.error(`[${type.toUpperCase()}] Notification error: ${e.message}`);
-    console.log(`[${type.toUpperCase()}] ${message}`);
-  }
+
+  showNotification_(message, type);
+  // try {
+  //   const iconUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  //   chrome.notifications.create({
+  //     type: 'basic',
+  //     iconUrl: iconUrl,
+  //     title: '划词翻译助手',
+  //     message: message,
+  //     priority: type === 'error' ? 2 : 0,
+  //   }, (id) => {
+  //     // 3秒后自动清除通知
+  //     if (id && !chrome.runtime.lastError) {
+  //       setTimeout(() => chrome.notifications.clear(id), 3000);
+  //     }
+  //   });
+  // } catch (e) {
+  //   console.error(`[${type.toUpperCase()}] Notification error: ${e.message}`);
+  //   console.log(`[${type.toUpperCase()}] ${message}`);
+  // }
 }
 
 /**

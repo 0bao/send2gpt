@@ -104,6 +104,18 @@ function showNotification(message, type = 'info') {
   }, 3000);
 }
 
+
+// 监听 background 的消息
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.action === "showNotification") {
+        showNotification(msg.payload);
+        sendResponse({ status: "ok" });
+    }
+});
+
+
+
+
 // 监听鼠标事件
 document.addEventListener('mouseup', function(event) {
   selectedText = window.getSelection().toString().trim();
@@ -129,7 +141,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'contentScriptUnloading') {
     sendResponse({ success: true });
     return true;
+  } else if (request.action === "showNotification") {
+    showNotification(request.payload.message, request.payload.type);
+    sendResponse({ success: true });
+    return true;
   }
+
   return true;
 });
 
