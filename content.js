@@ -141,51 +141,69 @@ function fillAndSendToChat(text, sendResponse) {
     }
     // 2. 填充输入框
     if (inputElement.contentEditable === 'true') {
-      inputElement.innerHTML = '';
-      inputElement.appendChild(document.createTextNode(text));
+        // 清空输入框并插入文本
+        inputElement.innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = text;
+        inputElement.appendChild(p);
     } else {
       inputElement.value = text;
     }
     inputElement.dispatchEvent(new Event('input', { bubbles: true }));
 
-
-
-
-    const sendButtonSelectors = [
+    setTimeout(() => {
+const sendButtonSelectors = [
       '#composer-submit-button',
       '[data-testid="send-button"]',
       '[data-testid="submit-button"]',
       'button[type="submit"]',
-      'button:contains("Send")',
-      'button:contains("发送")',
       'button[id="composer-submit-button"]'
     ];
     let sendButton = null;
     for (const selector of sendButtonSelectors) {
-      if (selector.includes(':contains')) {
-        const buttonText = selector.split('"')[1];
-        const buttons = document.querySelectorAll('button');
+      const candidate = document.querySelector(selector);
+      if (candidate) {
+        // 🚫 跳过语音按钮
+        if (candidate.getAttribute('data-testid') === 'composer-speech-button') {
+          continue;
+        }
+        sendButton = candidate;
+        break;
+      }
+    }
+ console.log("找到的发送按钮0:", sendButton);   // 打印整个 DOM 节点
+    const buttons = document.querySelectorAll('button');
+    if (!sendButton) {
         for (const btn of buttons) {
-          if (btn.textContent.includes(buttonText)) {
+          if (btn.getAttribute('data-testid') === 'composer-speech-button') {
+            continue;
+          }
+          if (btn.textContent.includes('send')) {
             sendButton = btn;
             break;
           }
         }
-      } else {
-        sendButton = document.querySelector(selector);
-      }
-      if (sendButton) break;
+    }
+ console.log("找到的发送按钮1:", sendButton);   // 打印整个 DOM 节点
+    if (!sendButton) {
+        for (const btn of buttons) {
+          if (btn.textContent.includes('发送')) {
+            sendButton = btn;
+            break;
+          }
+        }
     }
     if (!sendButton) {
-      const buttons = document.querySelectorAll('button');
-      if (buttons.length > 0) sendButton = buttons[buttons.length - 1];
+       if (buttons.length > 0) sendButton = buttons[buttons.length - 1];
     }
+
+    console.log("找到的发送按钮2:", sendButton);   // 打印整个 DOM 节点
     if (!sendButton) {
       const errorMsg = '未找到发送按钮';
       showNotification(errorMsg, 'error');
-      if (sendResponse) sendResponse({ success: false, message: errorMsg });
       return;
     }
+
 
     setTimeout(() => {
       if (typeof sendButton.click === 'function') {
@@ -199,9 +217,13 @@ function fillAndSendToChat(text, sendResponse) {
         else showNotification('点击发送按钮失败', 'error');
         if (sendResponse) sendResponse({ success: clicked, message: clicked ? '文本已发送到GPT' : '点击发送按钮失败' });
       }
-    }, 300);
+    }, 100);
+
+    }, 100);
 
     
+
+
   } catch (error) {
     const errorMsg = '填充和发送文本时出错: ' + error.message;
     showNotification(errorMsg, 'error');
