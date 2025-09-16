@@ -3,6 +3,7 @@
 // =================================================================
 const PREFIX_TEXT = "将下列内容翻译成中文：";
 let gptTabId = null;
+let lastSelectedText = '';
 
 // 从本地存储中恢复 GPT 页面 ID
 chrome.storage.local.get(['gptTabId'], (result) => {
@@ -127,10 +128,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'setAsGPTPage':
       setAsGPTPage(sender.tab.id);
       showNotification('已设置为GPT页面', request.type);
-      sendResponse({ message: '已设置为GPT页面' });
+      break;
+    case 'saveSelectedText':
+      lastSelectedText = request.text;
+      console.log("保存的选中文本:", lastSelectedText);
       break;
     default:
-      sendResponse({ success: false, message: '未知动作' });
+      showNotification('未知动作', 'error');
       break;
   }
   return true;

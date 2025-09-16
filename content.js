@@ -2,6 +2,31 @@
 
 let selectedText = '';
 
+// 点击翻译按钮的处理函数
+function handleTranslateButtonClick() {
+  if (!selectedText || !selectedText.trim()) {
+    showNotification('选中的文本为空', 'error');
+    return;
+  }
+
+  chrome.runtime.sendMessage(
+    { action: 'translateText', text: selectedText },
+    (response) => {
+      if (chrome.runtime.lastError) {
+        showNotification('发送翻译请求时出错: ' + chrome.runtime.lastError.message, 'error');
+      } else if (response && !response.success) {
+        if (response.message && response.message.includes('未设置GPT页面')) {
+          showNotification('请先打开GPT页面并设置为目标页面', 'error');
+        } else {
+          showNotification(response.message, 'error');
+        }
+      } else {
+        showNotification('文本已发送到GPT页面', 'info');
+      }
+    }
+  );
+}
+
 // 创建翻译按钮
 function createTranslateButton() {
   const button = document.createElement('div');
@@ -19,30 +44,11 @@ function createTranslateButton() {
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     display: none;
   `;
-  
-  button.addEventListener('click', function() {
 
-    if (!selectedText.trim()) {
-      showNotification('选中的文本为空', 'error');
-      return;
-    }
-    chrome.runtime.sendMessage({ action: 'translateText', text: selectedText }, function(response) {
-      if (chrome.runtime.lastError) {
-        showNotification('发送翻译请求时出错: ' + chrome.runtime.lastError.message, 'error');
-      } else if (response && !response.success) {
-        if (response.message && response.message.includes('未设置GPT页面')) {
-          showNotification('请先打开GPT页面并设置为目标页面', 'error');
-        } else {
-          showNotification(response.message, 'error');
-        }
-      } else {
-        showNotification('文本已发送到GPT页面', 'info');
-      }
-    });
-  });
-
+  button.addEventListener('click', handleTranslateButtonClick);
   document.body.appendChild(button);
 }
+
 
 function showTranslateButton(x, y) {
   const button = document.getElementById('translate-button');
@@ -106,12 +112,19 @@ function showNotification(message, type = 'info') {
 
 // 监听鼠标事件
 document.addEventListener('mouseup', function(event) {
-  selectedText = window.getSelection().toString().trim();
+  const selectedText = window.getSelection().toString().trim();
   if (selectedText) {
     showTranslateButton(event.clientX, event.clientY);
     console.log('选中的文本:', selectedText);
+
+    // 把选中的文本发给 background
+    chrome.runtime.sendMessage({
+      action: 'saveSelectedText',
+      text: selectedText
+    });
+  } else {
+    hideTranslateButton();
   }
-  else hideTranslateButton();
 });
 
 // 监听来自background script的消息
