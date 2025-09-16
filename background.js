@@ -18,29 +18,16 @@ chrome.storage.local.get(['gptTabId'], (result) => {
 
 /**
  * 显示页面内浮动通知
- * @param {string} message - 通知内容
- * @param {('info'|'error')} [type='info'] - 通知类型
  */
 function showNotification(message, type = 'info') {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
       chrome.tabs.sendMessage(
         tabs[0].id,
-        { action: "showNotification", payload: { message, type } },
-        (response) => {
-          console.log("content.js 响应:", response);
-        }
+        { action: "showNotification", payload: { message, type } }
       );
     }
   });
-}
-
-/**
- * 错误处理并提示
- */
-function handleResponseError(message, sendResponse) {
-  showNotification(message, 'error');
-  sendResponse?.({ success: false, message });
 }
 
 /**
@@ -54,16 +41,16 @@ function clearGPTPage() {
 /**
  * 检查 GPT 页面是否存在并更新状态
  */
-function checkGPTPageAndRun(callback, sendResponse) {
+function checkGPTPageAndRun(callback) {
   if (!gptTabId) {
-    handleResponseError('未设置GPT页面，请先打开GPT页面并点击插件图标设置为目标页面', sendResponse);
+    showNotification('未设置GPT页面，请先打开GPT页面并设置为目标页面', 'error');
     return;
   }
 
   chrome.tabs.get(gptTabId, (tab) => {
     if (chrome.runtime.lastError || !tab) {
       clearGPTPage();
-      handleResponseError('GPT页面已关闭，请重新设置目标页面', sendResponse);
+      showNotification('GPT页面已关闭，请重新设置目标页面', 'error');
     } else {
       callback();
     }
@@ -77,13 +64,12 @@ function checkGPTPageAndRun(callback, sendResponse) {
 /**
  * 发送文本到 GPT 页面进行处理
  */
-function sendToGPT(text, sendResponse) {
-  
+function sendToGPT(text) {
   checkGPTPageAndRun(() => {
     chrome.tabs.update(gptTabId, { active: true }, () => {
       if (chrome.runtime.lastError) {
         clearGPTPage();
-        handleResponseError('GPT页面不存在或已断开连接，请重新设置目标页面', sendResponse);
+        showNotification('GPT页面不存在或已断开连接，请重新设置目标页面', 'error');
         return;
       }
 
@@ -93,20 +79,19 @@ function sendToGPT(text, sendResponse) {
         (response) => {
           if (chrome.runtime.lastError) {
             clearGPTPage();
-            handleResponseError('与GPT页面的连接已断开，请重新设置目标页面', sendResponse);
+            showNotification('与GPT页面的连接已断开，请重新设置目标页面', 'error');
             return;
           }
 
           if (response?.success) {
             showNotification(response.message || '文本已发送到GPT页面', 'info');
-            sendResponse?.({ success: true, message: response.message });
           } else {
-            handleResponseError(response?.message || '发送失败', sendResponse);
+            showNotification(response?.message || '发送失败', 'error');
           }
         }
       );
     });
-  }, sendResponse);
+  });
 }
 
 /**
@@ -121,10 +106,10 @@ function setAsGPTPage(tabId) {
 // 事件监听器
 // =================================================================
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender) => {
   switch (request.action) {
     case 'sendToGPT':
-      sendToGPT(request.text, sendResponse);
+      sendToGPT(request.text);
       break;
     case 'setAsGPTPage':
       setAsGPTPage(sender.tab.id);
@@ -138,7 +123,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       showNotification('未知动作', 'error');
       break;
   }
-  return true;
 });
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -156,7 +140,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'translateContextMenu' && info.selectionText) {
-    sendToGPT(info.selectionText, null);
+    sendToGPT(info.selectionText);
   } else if (info.menuItemId === 'setAsGPTPage') {
     setAsGPTPage(tab.id);
     showNotification('已将当前页面设为GPT目标页面', 'info');
