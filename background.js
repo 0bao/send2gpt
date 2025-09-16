@@ -109,7 +109,7 @@ function setAsGPTPage(tabId) {
 chrome.runtime.onMessage.addListener((request, sender) => {
   switch (request.action) {
     case 'sendToGPT':
-      sendToGPT(request.text);
+      sendToGPT(lastSelectedText);
       break;
     case 'setAsGPTPage':
       setAsGPTPage(sender.tab.id);
@@ -127,11 +127,6 @@ chrome.runtime.onMessage.addListener((request, sender) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id: 'translateContextMenu',
-    title: '翻译选中文本',
-    contexts: ['selection']
-  });
-  chrome.contextMenus.create({
     id: 'setAsGPTPage',
     title: '设为GPT目标页面',
     contexts: ['page']
@@ -139,9 +134,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === 'translateContextMenu' && info.selectionText) {
-    sendToGPT(info.selectionText);
-  } else if (info.menuItemId === 'setAsGPTPage') {
+    if (info.menuItemId === 'setAsGPTPage') {
     setAsGPTPage(tab.id);
     showNotification('已将当前页面设为GPT目标页面', 'info');
   }
