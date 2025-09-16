@@ -123,8 +123,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // 填充文本并发送
 function fillAndSendToChat(text, sendResponse) {
+
+
+
   try {
     const inputSelectors = [
+      '#prompt-textarea',
       'textarea[data-id*="root"]',
       'textarea',
       'input[type="text"]',
@@ -135,12 +139,7 @@ function fillAndSendToChat(text, sendResponse) {
       inputElement = document.querySelector(selector);
       if (inputElement) break;
     }
-    if (!inputElement) {
-      const errorMsg = '未找到聊天输入框';
-      showNotification(errorMsg, 'error');
-      if (sendResponse) sendResponse({ success: false, message: errorMsg });
-      return;
-    }
+    // 2. 填充输入框
     if (inputElement.contentEditable === 'true') {
       inputElement.innerHTML = '';
       inputElement.appendChild(document.createTextNode(text));
@@ -149,12 +148,17 @@ function fillAndSendToChat(text, sendResponse) {
     }
     inputElement.dispatchEvent(new Event('input', { bubbles: true }));
 
+
+
+
     const sendButtonSelectors = [
+      '#composer-submit-button',
       '[data-testid="send-button"]',
       '[data-testid="submit-button"]',
       'button[type="submit"]',
       'button:contains("Send")',
-      'button:contains("发送")'
+      'button:contains("发送")',
+      'button[id="composer-submit-button"]'
     ];
     let sendButton = null;
     for (const selector of sendButtonSelectors) {
@@ -196,6 +200,8 @@ function fillAndSendToChat(text, sendResponse) {
         if (sendResponse) sendResponse({ success: clicked, message: clicked ? '文本已发送到GPT' : '点击发送按钮失败' });
       }
     }, 300);
+
+    
   } catch (error) {
     const errorMsg = '填充和发送文本时出错: ' + error.message;
     showNotification(errorMsg, 'error');
