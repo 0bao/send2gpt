@@ -1,321 +1,198 @@
-// 存储GPT页面的tabId
+// =================================================================
+// 常量和状态管理
+// =================================================================
+const PREFIX_TEXT = "将下列内容翻译成中文：";
 let gptTabId = null;
 
-// 从存储中恢复GPT页面ID
-chrome.storage.local.get(['gptTabId'], function(result) {
+// 从本地存储中恢复 GPT 页面 ID
+chrome.storage.local.get(['gptTabId'], (result) => {
   if (result.gptTabId) {
     gptTabId = result.gptTabId;
-    console.log('从存储中恢复GPT页面ID:', gptTabId);
   }
 });
 
-// 监听来自popup或content script的消息
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('收到消息:', request);
-  
-  if (request.action === 'translateText') {
-    // 处理翻译文本的请求
-    handleTranslateText(request.text, sendResponse);
-    return true; // 保持消息通道开放以进行异步响应
-  } else if (request.action === 'setAsGPTPage') {
-    // 设置当前标签页为GPT页面
-    setAsGPTPage(sender.tab.id);
-    sendResponse({ message: '已设置为GPT页面' });
-    showNotification('已设置为GPT页面', request.type);
-  } else if (request.action === 'checkIfGPTPage') {
-    // 检查当前标签页是否为GPT页面
-    const isGPTPage = sender.tab.id === gptTabId;
-    sendResponse({ isGPTPage: isGPTPage });
-  } else if (request.action === 'getCurrentGPTTabId') {
-    // 获取当前GPT页面ID（用于调试）
-    sendResponse({ gptTabId: gptTabId });
-  } else if (request.action === 'clearGPTPage') {
-    // 清除GPT页面设置（用于调试）
-    gptTabId = null;
-    chrome.storage.local.remove('gptTabId');
-    sendResponse({ message: 'GPT页面设置已清除' });
-  } else if (request.action === 'showNotification') {
-    // 显示通知
-    chrome.notifications.create({
-      type: 'basic',
-      title: request.title || '划词翻译助手',
-      message: request.message,
-      iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-    });
-    sendResponse({ success: true });
-  } else if (request.action === 'contentScriptLoaded') {
-    // 内容脚本加载完成
-    try {
-      console.log('Content script loaded in tab:', sender.tab ? sender.tab.id : 'unknown');
-      sendResponse({ success: true });
-    } catch (error) {
-      console.error('处理contentScriptLoaded消息时发生异常:', error.message);
-      // 即使出现异常也尝试发送响应
-      try {
-        sendResponse({ success: false, error: error.message });
-      } catch (responseError) {
-        console.error('发送响应时出错:', responseError.message);
-      }
-    }
-  } else if (request.action === 'contentScriptUnloading') {
-    // 内容脚本即将卸载
-    try {
-      console.log('Content script unloading from tab:', sender.tab ? sender.tab.id : 'unknown');
-      sendResponse({ success: true });
-    } catch (error) {
-      console.error('处理contentScriptUnloading消息时发生异常:', error.message);
-      // 即使出现异常也尝试发送响应
-      try {
-        sendResponse({ success: false, error: error.message });
-      } catch (responseError) {
-        console.error('发送响应时出错:', responseError.message);
-      }
-    }
-  }
-  
-  return true;
-});
+// =================================================================
+// 消息处理和通知
+// =================================================================
 
-// 处理翻译文本的函数
-function handleTranslateText(text, sendResponse) {
-  console.log('处理翻译文本:', text);
-  
-  // 如果还没有设置GPT页面，则提示用户打开GPT页面
-  if (!gptTabId) {
-    const errorMsg = '未设置GPT页面，请先打开GPT页面并点击插件图标设置为目标页面';
-    console.warn(errorMsg);
-    
-    // 创建通知提示用户打开GPT页面
-    chrome.notifications.create({
-      type: 'basic',
-      title: '划词翻译助手',
-      message: errorMsg,
-      iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-    });
-    
-    sendResponse({ success: false, message: errorMsg });
-  } else {
-    // 检查GPT页面是否仍然存在
-    chrome.tabs.get(gptTabId, function(tab) {
-      if (chrome.runtime.lastError) {
-        // 如果页面不存在，清除gptTabId
-        console.error('GPT页面不存在:', chrome.runtime.lastError.message);
-        gptTabId = null;
-        chrome.storage.local.remove('gptTabId');
-        
-        const errorMsg = 'GPT页面已关闭，请重新打开GPT页面并设置为目标页面';
-        chrome.notifications.create({
-          type: 'basic',
-          title: '划词翻译助手',
-          message: errorMsg,
-          iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-        });
-        
-        sendResponse({ success: false, message: errorMsg });
-      } else {
-        // 如果页面存在，则发送文本
-        sendTextToGPT(text, sendResponse);
-      }
-    });
-  }
-}
-
-// 设置GPT页面的函数
-function setAsGPTPage(tabId) {
-  gptTabId = tabId;
-  
-  // 保存GPT页面ID到存储中
-  chrome.storage.local.set({gptTabId: gptTabId}, function() {
-    if (chrome.runtime.lastError) {
-      console.error('保存GPT页面ID时出错:', chrome.runtime.lastError.message);
-    } else {
-      console.log('GPT tab ID saved:', gptTabId);
-    }
-  });
-  
-}
-
-// 可配置的前缀文本
-const prefixText = "将下列内容翻译成中文：";
-
-// 发送文本到GPT页面
-function sendTextToGPT(text, sendResponse) {
-  if (gptTabId) {
-    console.log('准备向GPT页面发送文本，Tab ID:', gptTabId);
-    // 激活GPT页面标签
-    chrome.tabs.update(gptTabId, {active: true}, function(tab) {
-      if (chrome.runtime.lastError) {
-        console.error('激活GPT页面时出错:', chrome.runtime.lastError.message);
-        // 如果页面不存在，清除gptTabId
-        if (chrome.runtime.lastError.message.includes('No tab') || 
-            chrome.runtime.lastError.message.includes('Invalid tab id')) {
-          console.log('检测到GPT页面不存在，清除GPT页面ID');
-          gptTabId = null;
-          chrome.storage.local.remove('gptTabId');
-          showNotification('GPT页面不存在，请重新设置目标页面', 'error');
-        }
-        // 如果有sendResponse回调，调用它
-        if (sendResponse) {
-          sendResponse({ success: false, message: '激活GPT页面时出错: ' + chrome.runtime.lastError.message });
-        }
-        return;
-      }
-      
-      console.log('GPT页面已激活，准备发送消息');
-      // 向GPT页面的内容脚本发送消息
-      chrome.tabs.sendMessage(gptTabId, {
-        action: 'sendTextToGPT',
-        text: prefixText + text
-      }, function(response) {
-        if (chrome.runtime.lastError) {
-          console.error('发送消息到GPT页面时出错:', chrome.runtime.lastError.message);
-          // 检查是否为连接错误
-          const errorMessage = chrome.runtime.lastError.message;
-          if (errorMessage.includes('Could not establish connection') || 
-              errorMessage.includes('Receiving end does not exist')) {
-            console.log('检测到连接错误，清除GPT页面ID');
-            gptTabId = null;
-            chrome.storage.local.remove('gptTabId');
-            showNotification('与GPT页面的连接已断开，请重新设置目标页面', 'error');
-          } else {
-            showNotification('发送消息到GPT页面时出错: ' + errorMessage, 'error');
-          }
-          // 如果有sendResponse回调，调用它
-          if (sendResponse) {
-            sendResponse({ success: false, message: '发送消息到GPT页面时出错: ' + errorMessage });
-          }
-        } else {
-          console.log('成功发送文本到GPT页面');
-          if (response && response.success) {
-            showNotification(response.message || '文本已发送到GPT页面', 'info');
-          } else {
-            showNotification(response.message || '发送文本到GPT页面失败', 'error');
-          }
-          // 如果有sendResponse回调，调用它
-          if (sendResponse) {
-            sendResponse({ success: true, message: response.message || '文本已发送到GPT页面' });
-          }
-        }
-      });
-    });
-  } else {
-    const errorMsg = '未设置GPT页面，请先打开GPT页面并设置为目标页面';
-    showNotification(errorMsg, 'error');
-    // 如果有sendResponse回调，调用它
-    if (sendResponse) {
-      sendResponse({ success: false, message: errorMsg });
-    }
-  }
-}
-
-// 显示通知函数
+/**
+ * 显示浏览器通知
+ * @param {string} message - 通知内容
+ * @param {('info'|'error')} [type='info'] - 通知类型
+ */
 function showNotification(message, type = 'info') {
   try {
-    // 使用chrome.notifications API显示通知
+    const iconUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
     chrome.notifications.create({
       type: 'basic',
-      iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      iconUrl: iconUrl,
       title: '划词翻译助手',
       message: message,
-      priority: type === 'error' ? 2 : 0
-    }, function(notificationId) {
-      if (chrome.runtime.lastError) {
-        console.warn('浏览器通知创建失败，使用控制台输出:', chrome.runtime.lastError.message);
-        // 回退到控制台输出
-        console.log(`[${type.toUpperCase()}] ${message}`);
-      } else {
-        // 3秒后清除通知
-        setTimeout(() => {
-          chrome.notifications.clear(notificationId);
-        }, 3000);
+      priority: type === 'error' ? 2 : 0,
+    }, (id) => {
+      // 3秒后自动清除通知
+      if (id && !chrome.runtime.lastError) {
+        setTimeout(() => chrome.notifications.clear(id), 3000);
       }
     });
-  } catch (error) {
-    console.error('显示通知时发生异常:', error.message);
-    // 最后的回退方案：使用浏览器控制台
+  } catch (e) {
+    console.error(`[${type.toUpperCase()}] Notification error: ${e.message}`);
     console.log(`[${type.toUpperCase()}] ${message}`);
   }
 }
 
-// 创建右键菜单项
-chrome.runtime.onInstalled.addListener(function() {
+/**
+ * 封装的错误处理函数，用于发送错误响应和显示通知
+ * @param {string} message - 错误信息
+ * @param {function} sendResponse - sendResponse 回调函数
+ */
+function handleResponseError(message, sendResponse) {
+  showNotification(message, 'error');
+  sendResponse?.({ success: false, message: message });
+}
+
+/**
+ * 清除 GPT 页面设置
+ */
+function clearGPTPage() {
+  gptTabId = null;
+  chrome.storage.local.remove('gptTabId');
+}
+
+/**
+ * 检查 GPT 页面是否存在并更新状态
+ * @param {function} callback - 回调函数
+ * @param {function} [sendResponse] - sendResponse 回调函数
+ */
+function checkGPTPageAndRun(callback, sendResponse) {
+  if (!gptTabId) {
+    handleResponseError('未设置GPT页面，请先打开GPT页面并点击插件图标设置为目标页面', sendResponse);
+    return;
+  }
+
+  chrome.tabs.get(gptTabId, (tab) => {
+    if (chrome.runtime.lastError || !tab) {
+      clearGPTPage();
+      handleResponseError('GPT页面已关闭，请重新设置目标页面', sendResponse);
+    } else {
+      callback();
+    }
+  });
+}
+
+// =================================================================
+// 主要功能函数
+// =================================================================
+
+/**
+ * 发送文本到 GPT 页面进行处理
+ * @param {string} text - 需要发送的文本
+ * @param {function} [sendResponse] - sendResponse 回调函数
+ */
+function sendTextToGPT(text, sendResponse) {
+  checkGPTPageAndRun(() => {
+    chrome.tabs.update(gptTabId, { active: true }, () => {
+      if (chrome.runtime.lastError) {
+        clearGPTPage();
+        handleResponseError('GPT页面不存在或已断开连接，请重新设置目标页面', sendResponse);
+        return;
+      }
+      
+      chrome.tabs.sendMessage(
+        gptTabId,
+        { action: 'sendTextToGPT', text: PREFIX_TEXT + text },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            clearGPTPage();
+            handleResponseError('与GPT页面的连接已断开，请重新设置目标页面', sendResponse);
+            return;
+          }
+
+          if (response?.success) {
+            showNotification(response.message || '文本已发送到GPT页面', 'info');
+            sendResponse?.({ success: true, message: response.message });
+          } else {
+            handleResponseError(response?.message || '发送失败', sendResponse);
+          }
+        }
+      );
+    });
+  }, sendResponse);
+}
+
+/**
+ * 设置当前标签页为 GPT 目标页面
+ * @param {number} tabId - 标签页 ID
+ */
+function setAsGPTPage(tabId) {
+  gptTabId = tabId;
+  chrome.storage.local.set({ gptTabId });
+}
+
+// =================================================================
+// 事件监听器
+// =================================================================
+
+// 监听来自 popup 或 content script 的消息
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  switch (request.action) {
+    case 'translateText':
+      sendTextToGPT(request.text, sendResponse);
+      break;
+    case 'setAsGPTPage':
+      setAsGPTPage(sender.tab.id);
+      showNotification('已设置为GPT页面', request.type);
+      sendResponse({ message: '已设置为GPT页面' });
+      break;
+    case 'checkIfGPTPage':
+      sendResponse({ isGPTPage: sender.tab.id === gptTabId });
+      break;
+    case 'getCurrentGPTTabId':
+      sendResponse({ gptTabId: gptTabId });
+      break;
+    case 'clearGPTPage':
+      clearGPTPage();
+      sendResponse({ message: 'GPT页面设置已清除' });
+      break;
+    case 'showNotification':
+      showNotification(request.message, request.type);
+      sendResponse({ success: true });
+      break;
+    default:
+      console.warn('未知消息动作：', request.action);
+      sendResponse({ success: false, message: '未知动作' });
+      break;
+  }
+  return true;
+});
+
+// 监听扩展程序安装事件，创建右键菜单
+chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'translateContextMenu',
     title: '翻译选中文本',
     contexts: ['selection']
-  }, function() {
-    if (chrome.runtime.lastError) {
-      console.error('创建右键菜单时出错:', chrome.runtime.lastError.message);
-    } else {
-      console.log('右键菜单创建成功');
-    }
   });
-  
-  // 创建设置GPT页面的上下文菜单
   chrome.contextMenus.create({
     id: 'setAsGPTPage',
     title: '设为GPT目标页面',
     contexts: ['page']
-  }, function() {
-    if (chrome.runtime.lastError) {
-      console.error('创建GPT页面设置菜单时出错:', chrome.runtime.lastError.message);
-    } else {
-      console.log('GPT页面设置菜单创建成功');
-    }
   });
 });
 
 // 监听右键菜单点击事件
-  chrome.contextMenus.onClicked.addListener(function(info, tab) {
-    if (info.menuItemId === 'translateContextMenu') {
-      // 获取选中的文本
-      const selectedText = info.selectionText;
-      
-      // 保存文本并尝试发送到GPT页面
-      chrome.storage.local.set({selectedText: selectedText}, function() {
-        if (chrome.runtime.lastError) {
-          console.error('保存选中文本时出错:', chrome.runtime.lastError.message);
-        } else {
-          console.log('Text saved to storage:', selectedText);
-        }
-      });
-      
-      if (!gptTabId) {
-        // 如果没有设置GPT页面，则提示用户
-        const errorMsg = '请先打开GPT页面并设置为目标页面';
-        chrome.notifications.create({
-          type: 'basic',
-          title: '划词翻译助手',
-          message: errorMsg,
-          iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-        });
-      } else {
-        // 发送文本到GPT页面
-        sendTextToGPT(selectedText, null);
-      }
-    }
-    
-    if (info.menuItemId === 'setAsGPTPage') {
-      // 设置当前页面为GPT页面
-      setAsGPTPage(tab.id);
-      
-    }
-  });
-
-// 监听标签页关闭事件
-chrome.tabs.onRemoved.addListener(function(tabId) {
-  // 如果关闭的是GPT页面，则清除gptTabId
-  if (tabId === gptTabId) {
-    gptTabId = null;
-    chrome.storage.local.remove('gptTabId', function() {
-      if (chrome.runtime.lastError) {
-        console.error('清除GPT页面ID时出错:', chrome.runtime.lastError.message);
-      } else {
-        console.log('GPT tab ID removed from storage');
-      }
-    });
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'translateContextMenu' && info.selectionText) {
+    sendTextToGPT(info.selectionText, null);
+  } else if (info.menuItemId === 'setAsGPTPage') {
+    setAsGPTPage(tab.id);
+    showNotification('已将当前页面设为GPT目标页面', 'info');
   }
 });
 
-
-console.log('划词翻译助手background script已加载');
+// 监听标签页关闭事件，如果关闭的是 GPT 页面，则清除设置
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === gptTabId) {
+    clearGPTPage();
+  }
+});
